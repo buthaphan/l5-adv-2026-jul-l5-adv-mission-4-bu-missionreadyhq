@@ -1,0 +1,12 @@
+schema: "classroom50/repo-config/v1"
+classroom: "l5-adv-2026-jul"
+assignment: "l5-adv-mission-4"
+owner:
+  username: "bu-missionreadyhq"
+  id: 279871601
+  accepted_at: "2026-08-27T07:41:22Z"
+source:
+  owner: "Mission-Ready"
+  owner_id: 91437324
+  repo: "l5-adv-mission-4"
+  branch: "main"
