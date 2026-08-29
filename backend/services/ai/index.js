@@ -1,7 +1,33 @@
-// backend/services/ai/index.js
 import { TINA_SYSTEM_INSTRUCTION } from "../../config/prompts.js";
 import { EVALUATE_POLICY_TOOL } from "../../config/tools.js";
 import { sendMessageWithGemini } from "./geminiProvider.js";
+
+/**
+ * Helper to retry API calls on 429 rate limits with exponential backoff
+ */
+async function callWithRetry(fn, maxRetries = 3, delayMs = 2000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isQuotaError =
+        err?.status === 429 ||
+        err?.message?.includes("429") ||
+        err?.message?.includes("Quota exceeded");
+
+      // If it's not a rate limit error or we ran out of retries, throw it
+      if (!isQuotaError || i === maxRetries - 1) {
+        throw err;
+      }
+
+      console.warn(
+        `Gemini 429 rate limited. Retrying attempt ${i + 1}/${maxRetries} after ${delayMs}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      delayMs *= 2; // Exponential delay: 2s, 4s, 8s
+    }
+  }
+}
 
 /**
  * The standard response shape required from ALL AI provider adapters.
@@ -29,12 +55,14 @@ export async function getTinaResponse(userMessage, history = []) {
     tool: EVALUATE_POLICY_TOOL,
   };
 
-  switch (provider.toLowerCase()) {
-    case "gemini":
-      return await sendMessageWithGemini(options);
-    // case 'openai':
-    //     return await sendMessageWithOpenAI(options);
-    default:
-      throw new Error(`Unsupported AI Provider: ${provider}`);
-  }
+  return await callWithRetry(async () => {
+    switch (provider.toLowerCase()) {
+      case "gemini":
+        return await sendMessageWithGemini(options);
+      // case 'openai':
+      //     return await sendMessageWithOpenAI(options);
+      default:
+        throw new Error(`Unsupported AI Provider: ${provider}`);
+    }
+  });
 }
