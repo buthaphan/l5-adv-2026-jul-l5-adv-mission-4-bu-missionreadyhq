@@ -66,3 +66,51 @@ export const aiMessage = style([
     borderBottomLeftRadius: "2px",
   },
 ]);
+
+// Container for the bottom input and button
+export const inputGroup = style({
+  display: "flex",
+  padding: "16px",
+  gap: "12px",
+  backgroundColor: "#ffffff",
+  borderTop: "1px solid #e1e4e8",
+});
+
+// Textarea input field
+export const textInput = style({
+  flex: 1,
+  padding: "12px 16px",
+  borderRadius: "8px",
+  border: "1px solid #d1d5db",
+  fontSize: "0.95rem",
+  fontFamily: "inherit",
+  outline: "none",
+  resize: "none", // Prevents manual drag-resizing
+  minHeight: "24px", // Keeps it compact initially
+  maxHeight: "150px", // Keeps it from growing infinitely
+  overflowY: "auto",
+  transition: "border-color 0.2s ease",
+  selectors: {
+    "&:focus": {
+      borderColor: "#0066ff",
+    },
+  },
+});
+
+// Send button
+export const submitButton = style({
+  padding: "12px 20px",
+  borderRadius: "8px",
+  border: "none",
+  backgroundColor: "#0066ff",
+  color: "#ffffff",
+  fontSize: "0.95rem",
+  fontWeight: 600,
+  cursor: "pointer",
+  transition: "background-color 0.2s ease",
+  selectors: {
+    "&:hover": {
+      backgroundColor: "#0052cc",
+    },
+  },
+});
