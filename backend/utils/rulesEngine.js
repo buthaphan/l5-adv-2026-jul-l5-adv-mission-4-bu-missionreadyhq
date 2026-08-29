@@ -18,7 +18,7 @@ const exclusionRules = [
   },
 ];
 
-const evaluatePolicyEligibility = (vehicle, requestedPolicy) => {
+export const evaluatePolicyEligibility = (vehicle, requestedPolicy) => {
   // Check if the vehicle/policy combo trips any exclusion rule
   for (const rule of exclusionRules) {
     if (rule.condition(vehicle, requestedPolicy)) {
@@ -31,5 +31,3 @@ const evaluatePolicyEligibility = (vehicle, requestedPolicy) => {
 
   return { eligible: true };
 };
-
-export default evaluatePolicyEligibility;
