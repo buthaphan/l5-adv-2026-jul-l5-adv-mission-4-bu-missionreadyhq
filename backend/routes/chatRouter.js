@@ -54,6 +54,24 @@ router.post("/message", async (req, res) => {
     });
   } catch (error) {
     console.error("Chat error:", error);
+
+    // Check if the error is a Gemini 429 rate limit or quota error
+    const isQuotaError =
+      error?.status === 429 ||
+      error?.message?.includes("429") ||
+      error?.message?.includes("Quota exceeded");
+
+    if (isQuotaError) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          type: "text",
+          reply:
+            "Tina is currently receiving high traffic (quota limit reached). Please wait a few seconds and try sending your message again.",
+        },
+      });
+    }
+
     return res
       .status(500)
       .json({ success: false, error: "Internal server error" });
