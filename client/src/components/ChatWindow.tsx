@@ -1,38 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { Message } from "../types/chat";
 import { sendMessageToAI } from "../services/api";
 import * as styles from "./chat.css";
 
 const ChatWindow = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "init-1",
+      sender: "ai",
+      text: "I'm Tina. I help you to choose right insurance policy. May I ask you a few personal questions to make sure I recommend the best policy for you?",
+    },
+  ]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchInitialGreeting = async () => {
-      setIsLoading(true);
-      try {
-        const response = await sendMessageToAI("hello", []);
-        if (response.content) {
-          setMessages([
-            {
-              id: Date.now().toString(),
-              sender: "ai",
-              text: response.content,
-            },
-          ]);
-        }
-      } catch (error) {
-        console.error("Failed to load initial greeting from Tina:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialGreeting();
-  }, []);
-
-  // Inside ChatWindow.tsx handleSend:
   const handleSend = async () => {
     const msg = userInput.trim();
     if (!msg || isLoading) return;
@@ -52,7 +33,7 @@ const ChatWindow = () => {
     setIsLoading(true);
 
     try {
-      // 3. Pass text as the current message, and previousHistory as history
+      // Pass text as the current message, and previousHistory as history
       const response = await sendMessageToAI(msg, previousHistory);
 
       const responseText = response.content || "I processed that for you!";

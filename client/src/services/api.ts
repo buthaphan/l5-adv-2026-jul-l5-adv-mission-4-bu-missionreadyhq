@@ -7,20 +7,12 @@ export async function sendMessageToAI(
   message: string,
   history: Message[] = [],
 ): Promise<AIResponse> {
-  // Format history to match Gemini's expectations:
-  // 1. Map 'user' -> 'user' and 'ai' -> 'model'
-  // 2. Ensure parts has a valid non-empty string for 'text'
-  const formattedHistory = history.map((msg) => ({
-    role: msg.sender === "user" ? "user" : "model",
-    parts: [{ text: msg.text || "" }],
-  }));
-
   const response = await fetch(API_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message, history: formattedHistory }),
+    body: JSON.stringify({ message, history }),
   });
 
   if (!response.ok) {
