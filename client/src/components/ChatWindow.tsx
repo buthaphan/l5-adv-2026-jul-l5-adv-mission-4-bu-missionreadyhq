@@ -83,6 +83,16 @@ const ChatWindow = () => {
             )}
           </div>
         ))}
+
+        {isLoading && (
+          <div className={`${styles.message} ${styles.aiMessage}`}>
+            <div className={styles.typingIndicator}>
+              <span>•</span>
+              <span>•</span>
+              <span>•</span>
+            </div>
+          </div>
+        )}
         {/* Empty div for checking for the bottom content */}
         <div ref={conversationEndRef} />
       </div>

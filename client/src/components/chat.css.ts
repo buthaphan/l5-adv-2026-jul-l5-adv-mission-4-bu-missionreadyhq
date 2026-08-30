@@ -1,4 +1,4 @@
-import { style, globalStyle } from "@vanilla-extract/css";
+import { style, globalStyle, keyframes } from "@vanilla-extract/css";
 
 // Global reset to ensure clean layout box-sizing
 globalStyle("html, body", {
@@ -113,4 +113,40 @@ export const submitButton = style({
       backgroundColor: "#0052cc",
     },
   },
+});
+
+// Keyframe animation for jumping dots
+const bounce = keyframes({
+  "0%, 100%": { transform: "translateY(0)" },
+  "50%": { transform: "translateY(-4px)" },
+});
+
+// Container for typing dots
+export const typingIndicator = style({
+  display: "inline-flex",
+  gap: "4px",
+  alignItems: "center",
+  padding: "2px 0",
+});
+
+// Target individual dots inside the indicator container
+globalStyle(`${typingIndicator} span`, {
+  display: "inline-block",
+  fontSize: "1.2rem",
+  lineHeight: 1,
+  color: "#6b7280",
+  animation: `${bounce} 1s infinite`,
+});
+
+// Stagger animation delays for a natural wave effect
+globalStyle(`${typingIndicator} span:nth-child(1)`, {
+  animationDelay: "0s",
+});
+
+globalStyle(`${typingIndicator} span:nth-child(2)`, {
+  animationDelay: "0.2s",
+});
+
+globalStyle(`${typingIndicator} span:nth-child(3)`, {
+  animationDelay: "0.4s",
 });
