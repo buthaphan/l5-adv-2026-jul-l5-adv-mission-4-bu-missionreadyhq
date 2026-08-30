@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ReactMarkdown from 'react-markdown';
 import type { Message } from "../types/chat";
 import { sendMessageToAI } from "../services/api";
 import * as styles from "./chat.css";
@@ -69,7 +70,11 @@ const ChatWindow = () => {
               msg.sender === "user" ? styles.userMessage : styles.aiMessage
             }`}
           >
-            {msg.text}
+            {msg.sender === "ai" ? (
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
+            ) : (
+              msg.text
+            )}
           </div>
         ))}
       </div>
