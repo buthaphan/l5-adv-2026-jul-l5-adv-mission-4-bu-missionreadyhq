@@ -55,7 +55,7 @@ export async function sendMessageWithGemini({
   const formattedHistory = formatHistoryForGemini(history);
 
   const chat = ai.chats.create({
-    model: "gemini-2.5-flash", // Use active stable Gemini 2.5 flash model
+    model: "gemini-3.6-flash", // Use active stable Gemini 2.5 flash model
     config: {
       systemInstruction,
       temperature: 0.7,

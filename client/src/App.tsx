@@ -1,12 +1,12 @@
-import './App.css'
+import ChatWindow from "./components/ChatWindow";
+import "./App.css";
 
 function App() {
-
   return (
     <>
-     <h1>Tina's Insurance Consultation</h1>
+      <ChatWindow />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
