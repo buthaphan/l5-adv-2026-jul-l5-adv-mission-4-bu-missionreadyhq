@@ -1,5 +1,5 @@
-import { useState } from "react";
-import ReactMarkdown from 'react-markdown';
+import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import type { Message } from "../types/chat";
 import { sendMessageToAI } from "../services/api";
 import * as styles from "./chat.css";
@@ -14,6 +14,12 @@ const ChatWindow = () => {
   ]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async () => {
     const msg = userInput.trim();
@@ -77,6 +83,8 @@ const ChatWindow = () => {
             )}
           </div>
         ))}
+        {/* Empty div for checking for the bottom content */}
+        <div ref={conversationEndRef} />
       </div>
       <div className={styles.inputGroup}>
         <textarea
