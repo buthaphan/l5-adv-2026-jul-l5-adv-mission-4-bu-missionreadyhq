@@ -1,10 +1,12 @@
 import { AIProjectClient } from "@azure/ai-projects";
 import { DefaultAzureCredential } from "@azure/identity";
 
-function needsComplianceReview(message) {
+function needsComplianceReview(message, history = []) {
 	const reviewKeywords = [
 		"claim",
 		"claims",
+		"accident",
+		"accidents",
 		"excess",
 		"windscreen",
 		"windshield",
@@ -13,13 +15,23 @@ function needsComplianceReview(message) {
 		"cover",
 		"liability",
 		"policy",
+		"damage",
+		"repair",
+		"stolen",
+		"theft",
 	];
 
-	const lowerMessage = message.toLowerCase();
+	const conversationText = [
+		...history.map(
+			(item) => item.content || item.message || item.text || "",
+		),
+		message,
+	]
+		.join(" ")
+		.toLowerCase();
 
-	return reviewKeywords.some((keyword) => lowerMessage.includes(keyword));
+	return reviewKeywords.some((keyword) => conversationText.includes(keyword));
 }
-
 async function sendToComplianceReviewer({ client, message, draft }) {
 	const openai = client.getOpenAIClient();
 
@@ -131,7 +143,7 @@ export async function sendMessageWithAzure({ message, history = [] }) {
 
 	const draft = response.output_text || "";
 
-	if (needsComplianceReview(message)) {
+	if (needsComplianceReview(message, history)) {
 		const reviewedResponse = await sendToComplianceReviewer({
 			client,
 			message,
