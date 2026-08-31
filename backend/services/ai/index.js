@@ -1,32 +1,33 @@
 import { TINA_SYSTEM_INSTRUCTION } from "../../config/prompts.js";
 import { EVALUATE_POLICY_TOOL } from "../../config/tools.js";
 import { sendMessageWithGemini } from "./geminiProvider.js";
+import { sendMessageWithAzureWorkflow } from "./azureWorkFlowProvider.js";
 
 /**
  * Helper to retry API calls on 429 rate limits with exponential backoff
  */
 async function callWithRetry(fn, maxRetries = 3, delayMs = 2000) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      const isQuotaError =
-        err?.status === 429 ||
-        err?.message?.includes("429") ||
-        err?.message?.includes("Quota exceeded");
+	for (let i = 0; i < maxRetries; i++) {
+		try {
+			return await fn();
+		} catch (err) {
+			const isQuotaError =
+				err?.status === 429 ||
+				err?.message?.includes("429") ||
+				err?.message?.includes("Quota exceeded");
 
-      // If it's not a rate limit error or we ran out of retries, throw it
-      if (!isQuotaError || i === maxRetries - 1) {
-        throw err;
-      }
+			// If it's not a rate limit error or we ran out of retries, throw it
+			if (!isQuotaError || i === maxRetries - 1) {
+				throw err;
+			}
 
-      console.warn(
-        `Gemini 429 rate limited. Retrying attempt ${i + 1}/${maxRetries} after ${delayMs}ms...`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      delayMs *= 2; // Exponential delay: 2s, 4s, 8s
-    }
-  }
+			console.warn(
+				`Gemini 429 rate limited. Retrying attempt ${i + 1}/${maxRetries} after ${delayMs}ms...`,
+			);
+			await new Promise((resolve) => setTimeout(resolve, delayMs));
+			delayMs *= 2; // Exponential delay: 2s, 4s, 8s
+		}
+	}
 }
 
 /**
@@ -46,23 +47,24 @@ async function callWithRetry(fn, maxRetries = 3, delayMs = 2000) {
  * @returns {Promise<AiResponse>} The normalized AI response.
  */
 export async function getTinaResponse(userMessage, history = []) {
-  const provider = process.env.AI_PROVIDER || "gemini";
+	const provider = process.env.AI_PROVIDER || "gemini";
 
-  const options = {
-    message: userMessage,
-    history,
-    systemInstruction: TINA_SYSTEM_INSTRUCTION,
-    tool: EVALUATE_POLICY_TOOL,
-  };
+	const options = {
+		message: userMessage,
+		history,
+		systemInstruction: TINA_SYSTEM_INSTRUCTION,
+		tool: EVALUATE_POLICY_TOOL,
+	};
 
-  return await callWithRetry(async () => {
-    switch (provider.toLowerCase()) {
-      case "gemini":
-        return await sendMessageWithGemini(options);
-      // case 'openai':
-      //     return await sendMessageWithOpenAI(options);
-      default:
-        throw new Error(`Unsupported AI Provider: ${provider}`);
-    }
-  });
+	return await callWithRetry(async () => {
+		switch (provider.toLowerCase()) {
+			case "gemini":
+				return await sendMessageWithGemini(options);
+			case "azure_workflow":
+			case "azure":
+				return await sendMessageWithAzureWorkflow(options);
+			default:
+				throw new Error(`Unsupported AI Provider: ${provider}`);
+		}
+	});
 }
