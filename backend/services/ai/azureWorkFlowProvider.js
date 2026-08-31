@@ -1,7 +1,62 @@
 import { AIProjectClient } from "@azure/ai-projects";
 import { DefaultAzureCredential } from "@azure/identity";
 
-export async function sendMessageWithAzureWorkflow({ message, history = [] }) {
+function needsComplianceReview(message) {
+	const reviewKeywords = [
+		"claim",
+		"claims",
+		"excess",
+		"windscreen",
+		"windshield",
+		"deductible",
+		"coverage",
+		"cover",
+		"liability",
+		"policy",
+	];
+
+	const lowerMessage = message.toLowerCase();
+
+	return reviewKeywords.some((keyword) => lowerMessage.includes(keyword));
+}
+
+async function sendToComplianceReviewer({ client, message, draft }) {
+	const openai = client.getOpenAIClient();
+
+	const conversation = await openai.conversations.create({
+		items: [
+			{
+				type: "message",
+				role: "user",
+				content: `Customer question:
+${message}
+
+Tina's draft response:
+${draft}
+
+Review Tina's response against the available insurance knowledge base. Return ONLY the final customer-facing response.`,
+			},
+		],
+	});
+
+	const response = await openai.responses.create(
+		{
+			conversation: conversation.id,
+		},
+		{
+			body: {
+				agent_reference: {
+					name: "Tina-Compliance-Reviewer",
+					type: "agent_reference",
+				},
+			},
+		},
+	);
+
+	return response.output_text || draft;
+}
+
+export async function sendMessageWithAzure({ message, history = [] }) {
 	const endpoint = process.env.PROJECT_ENDPOINT;
 
 	if (!endpoint) {
@@ -35,7 +90,6 @@ export async function sendMessageWithAzureWorkflow({ message, history = [] }) {
 		items: conversationItems,
 	});
 
-	// Add the current user message.
 	await openai.conversations.items.create(conversation.id, {
 		items: [
 			{
@@ -46,7 +100,6 @@ export async function sendMessageWithAzureWorkflow({ message, history = [] }) {
 		],
 	});
 
-	// Ask Tina to respond using the conversation context.
 	const response = await openai.responses.create(
 		{
 			conversation: conversation.id,
@@ -76,9 +129,25 @@ export async function sendMessageWithAzureWorkflow({ message, history = [] }) {
 		};
 	}
 
+	const draft = response.output_text || "";
+
+	if (needsComplianceReview(message)) {
+		const reviewedResponse = await sendToComplianceReviewer({
+			client,
+			message,
+			draft,
+		});
+
+		return {
+			type: "text",
+			content: reviewedResponse,
+			toolCall: null,
+		};
+	}
+
 	return {
 		type: "text",
-		content: response.output_text || "",
+		content: draft,
 		toolCall: null,
 	};
 }

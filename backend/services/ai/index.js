@@ -1,7 +1,7 @@
 import { TINA_SYSTEM_INSTRUCTION } from "../../config/prompts.js";
 import { EVALUATE_POLICY_TOOL } from "../../config/tools.js";
 import { sendMessageWithGemini } from "./geminiProvider.js";
-import { sendMessageWithAzureWorkflow } from "./azureWorkFlowProvider.js";
+import { sendMessageWithAzure } from "./azureWorkFlowProvider.js";
 
 /**
  * Helper to retry API calls on 429 rate limits with exponential backoff
@@ -62,7 +62,7 @@ export async function getTinaResponse(userMessage, history = []) {
 				return await sendMessageWithGemini(options);
 			case "azure_workflow":
 			case "azure":
-				return await sendMessageWithAzureWorkflow(options);
+				return await sendMessageWithAzure(options);
 			default:
 				throw new Error(`Unsupported AI Provider: ${provider}`);
 		}
