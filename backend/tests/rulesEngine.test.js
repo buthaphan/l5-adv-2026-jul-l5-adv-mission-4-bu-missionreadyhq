@@ -1,6 +1,6 @@
 // backend/tests/rulesEngine.test.js
 import { describe, it, expect } from "vitest";
-import evaluatePolicyEligibility from "../utils/rulesEngine.js";
+import {evaluatePolicyEligibility} from "../utils/rulesEngine.js";
 
 describe("Insurance Rules Engine (TDD)", () => {
   it("should NOT allow Mechanical Breakdown Insurance (MBI) for trucks", () => {
