@@ -60,6 +60,13 @@ export const statusDot = style({
   backgroundColor: "#22c55e",
 });
 
+export const checkingStatusDot = style([
+  statusDot,
+  {
+    backgroundColor: "#f59e0b",
+  },
+]);
+
 export const unavailableStatusDot = style([
   statusDot,
   {
@@ -111,6 +118,10 @@ export const aiMessage = style([
 ]);
 
 export const errorMessage = style({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "10px",
   alignSelf: "center",
   maxWidth: "75%",
   padding: "10px 12px",
@@ -123,6 +134,26 @@ export const errorMessage = style({
   textAlign: "center",
 });
 
+export const retryButton = style({
+  padding: "8px 14px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#a61f29",
+  color: "#ffffff",
+  fontFamily: "inherit",
+  fontSize: "0.9rem",
+  fontWeight: 700,
+  cursor: "pointer",
+  selectors: {
+    "&:hover": {
+      backgroundColor: "#8f1824",
+    },
+    "&:disabled": {
+      cursor: "not-allowed",
+      opacity: 0.6,
+    },
+  },
+});
 // Container for the bottom input and button
 export const inputGroup = style({
   display: "flex",

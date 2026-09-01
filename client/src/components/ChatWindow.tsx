@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Message } from "../types/chat";
-import { sendMessageToAI } from "../services/api";
+import { sendMessageToAI, checkServiceHealth } from "../services/api";
 import * as styles from "./chat.css";
 
 const ChatWindow = () => {
@@ -16,6 +16,7 @@ const ChatWindow = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +69,23 @@ const ChatWindow = () => {
     }
   };
 
+  const handleRetry = async () => {
+    setIsRetrying(true);
+
+    try {
+      await checkServiceHealth();
+
+      setIsServiceUnavailable(false);
+      setErrorMsg(null);
+    } catch (error) {
+      console.error("Health check failed:", error);
+
+      setErrorMsg("Tina is still unavailable. Please try again later.");
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault(); // <-- Stops step 2 (inserting \n) from happening
@@ -87,18 +105,22 @@ const ChatWindow = () => {
         <div className={styles.status}>
           <span
             className={
-              isServiceUnavailable
-                ? styles.unavailableStatusDot
-                : styles.statusDot
+              isRetrying
+                ? styles.checkingStatusDot
+                : isServiceUnavailable
+                  ? styles.unavailableStatusDot
+                  : styles.statusDot
             }
             aria-hidden="true"
           />
           <span>
-            {isServiceUnavailable
-              ? "Unavailable"
-              : isLoading
-                ? "Reviewing..."
-                : "Online"}
+            {isRetrying
+              ? "Checking..."
+              : isServiceUnavailable
+                ? "Unavailable"
+                : isLoading
+                  ? "Reviewing..."
+                  : "Online"}
           </span>
         </div>
       </div>
@@ -130,7 +152,17 @@ const ChatWindow = () => {
 
         {errorMsg && (
           <div className={styles.errorMessage} role="alert">
-            {errorMsg}
+            <span>{errorMsg}</span>
+
+            {isServiceUnavailable && (
+              <button
+                className={styles.retryButton}
+                onClick={handleRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? "Checking..." : "Try again"}
+              </button>
+            )}
           </div>
         )}
         {/* Empty div for checking for the bottom content */}
