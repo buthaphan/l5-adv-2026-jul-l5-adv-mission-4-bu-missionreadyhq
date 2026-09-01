@@ -24,6 +24,8 @@ The application currently supports **Google Gemini** and **Azure AI**. The Azure
 - Loading and typing indicators
 - Automated backend testing using Vitest and Supertest
 - AI provider abstraction designed to support additional providers in the future
+- Docker containerisation for frontend and backend
+- Docker Compose support for running the complete application
 
 ## How It Works
 
@@ -100,7 +102,7 @@ This separation prevents generative AI from being solely responsible for enforci
 
 The Azure implementation uses an **AI agent in Microsoft Foundry** to support insurance-related conversations and claim-policy questions.
 
-For claim-policy questions, the Azure AI agent uses a **Retrieval-Augmented Generation (RAG)** approach. Relevant information is retrieved from the configured knowledge source before the AI generates its response.
+For claim-policy questions, the Azure AI agent uses a **Retrieval-Augmented Generation (RAG)** approach. Relevant information is retrieved from the configured knowledge source before the AI generates a response.
 
 This allows the Azure implementation to provide responses grounded in the available claim-policy information rather than relying solely on the language model's general knowledge.
 
@@ -128,12 +130,12 @@ It does not cover damage to the user's own vehicle.
 
 The application currently enforces the following eligibility rules:
 
-| Insurance Product                    | Rule                                                            |
+| Insurance Product | Rule |
 | ------------------------------------ | --------------------------------------------------------------- |
-| Mechanical Breakdown Insurance (MBI) | Not available for trucks                                        |
-| Mechanical Breakdown Insurance (MBI) | Not available for racing cars                                   |
-| Comprehensive Car Insurance          | Only available for vehicles less than 10 years old              |
-| Third Party Car Insurance            | No exclusion rule currently defined in the backend rules engine |
+| Mechanical Breakdown Insurance (MBI) | Not available for trucks |
+| Mechanical Breakdown Insurance (MBI) | Not available for racing cars |
+| Comprehensive Car Insurance | Only available for vehicles less than 10 years old |
+| Third Party Car Insurance | No exclusion rule currently defined in the backend rules engine |
 
 The eligibility rules are implemented in the backend rather than relying on the AI model to determine eligibility.
 
@@ -148,6 +150,7 @@ The eligibility rules are implemented in the backend rather than relying on the 
 - React Markdown
 - Zod
 - Oxlint
+- Nginx
 
 ### Backend
 
@@ -172,6 +175,14 @@ The eligibility rules are implemented in the backend rather than relying on the 
 - Vitest
 - Supertest
 - Test-Driven Development (TDD) approach
+
+### Containerisation
+
+- Docker
+- Docker Desktop
+- Docker Compose
+- Node.js Alpine images
+- Nginx Alpine image
 
 ## Project Structure
 
@@ -199,6 +210,8 @@ The eligibility rules are implemented in the backend rather than relying on the 
 │   ├── validators/
 │   │   └── policyValidator.js
 │   ├── .env.example
+│   ├── .dockerignore
+│   ├── Dockerfile
 │   ├── index.js
 │   ├── server.js
 │   └── package.json
@@ -216,11 +229,15 @@ The eligibility rules are implemented in the backend rather than relying on the 
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── .env.example
+│   ├── .dockerignore
+│   ├── Dockerfile
 │   ├── index.html
+│   ├── nginx.conf
 │   ├── package.json
 │   └── vite.config.ts
 │
 ├── .gitignore
+├── docker-compose.yml
 ├── README.md
 └── package.json
 ```
@@ -232,6 +249,8 @@ Before running the application, make sure the following are installed:
 - Node.js
 - npm
 - Git
+- Docker Desktop
+- Docker Compose
 
 You will also need credentials for at least one supported AI provider.
 
@@ -259,13 +278,35 @@ WORKFLOW_NAME=your_workflow_name
 PROJECT_API_KEY=your_project_api_key
 ```
 
+For Docker-based execution, Azure authentication uses Microsoft Entra ID through a service principal:
+
+```env
+AZURE_CLIENT_ID=your_azure_client_id
+AZURE_TENANT_ID=your_azure_tenant_id
+AZURE_CLIENT_SECRET=your_azure_client_secret
+```
+
+These credentials are used by `DefaultAzureCredential` inside the backend container.
+
+Do not commit the client secret or any other credentials to the repository.
+
 ### Frontend
 
 Create a `.env` file in the `client` directory based on `client/.env.example`.
 
+For local development:
+
 ```env
 VITE_API_ENDPOINT=http://localhost:3000/api/chat/message
 ```
+
+For the Docker production build, the frontend uses:
+
+```text
+/api/chat/message
+```
+
+This allows Nginx to route API requests to the backend container through the Docker Compose network.
 
 Do not commit `.env` files or API credentials to the repository.
 
@@ -293,7 +334,7 @@ npm install
 
 ## Running the Application
 
-The backend and frontend are currently run as separate development processes.
+For local development, the backend and frontend can be run as separate development processes. The application can also be run as a containerised deployment using Docker Compose.
 
 ### Start the Backend
 
@@ -323,6 +364,183 @@ Vite will display the local development URL in the terminal.
 
 The frontend communicates with the backend using the endpoint configured by `VITE_API_ENDPOINT`.
 
+## Running with Docker
+
+The application can be run as two Docker containers:
+
+- Frontend container using Nginx
+- Backend container using Node.js
+
+Docker Compose creates a network between the two containers.
+
+### Build and Start
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+The frontend is available at:
+
+```text
+http://localhost:8080
+```
+
+The backend is available at:
+
+```text
+http://localhost:3000
+```
+
+The backend health check can be tested at:
+
+```text
+http://localhost:3000/health
+```
+
+### Stop the Containers
+
+```bash
+docker compose down
+```
+
+### Restart the Application
+
+The containers can be recreated from the Compose configuration using:
+
+```bash
+docker compose up
+```
+
+The backend receives its environment configuration from:
+
+```text
+backend/.env
+```
+
+The frontend Docker build uses:
+
+```text
+/api/chat/message
+```
+
+as the production API endpoint so that requests are routed through Nginx to the backend container.
+
+## Docker Architecture
+
+```text
+                         Browser
+                            │
+                            │ http://localhost:8080
+                            ▼
+                  ┌───────────────────┐
+                  │ Frontend Container│
+                  │       Nginx       │
+                  │       :80         │
+                  └─────────┬─────────┘
+                            │
+                      /api requests
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │ Backend Container │
+                  │    Node.js        │
+                  │      :3000        │
+                  └─────────┬─────────┘
+                            │
+                            ▼
+                  ┌───────────────────┐
+                  │ Microsoft Foundry │
+                  │ Tina AI Agent     │
+                  │       + RAG       │
+                  └───────────────────┘
+```
+
+The frontend and backend containers communicate through the Docker Compose network.
+
+Nginx serves the React production build and routes API requests to the backend service.
+
+## Task 4 — Containerise the Application
+
+The application was containerised using separate frontend and backend Docker containers.
+
+### Backend Container
+
+The backend is packaged using Node.js 22 Alpine.
+
+The container:
+
+- installs production dependencies;
+- exposes port `3000`;
+- starts the Express application using `npm start`;
+- receives required environment variables from `backend/.env`.
+
+### Frontend Container
+
+The frontend uses a multi-stage Docker build.
+
+The build stage:
+
+- installs frontend dependencies;
+- builds the React application using Vite.
+
+The production stage uses Nginx to serve the generated static files.
+
+The production frontend is configured to use:
+
+```text
+/api/chat/message
+```
+
+instead of `http://localhost:3000/api/chat/message`.
+
+This allows API requests to be routed through the Nginx container to the backend container.
+
+### Docker Compose
+
+Docker Compose is used to run and connect the frontend and backend containers.
+
+The two services communicate through the Docker Compose network.
+
+The frontend does not need to know the backend container's internal IP address. Nginx routes `/api` requests to the backend service.
+
+### Azure Authentication in Docker
+
+The Azure implementation uses `DefaultAzureCredential`.
+
+During local development, `DefaultAzureCredential` can use the developer's Azure CLI authentication.
+
+Inside the Docker container, Azure CLI is not available, so the backend uses service-principal credentials supplied through environment variables:
+
+```env
+AZURE_CLIENT_ID=your_azure_client_id
+AZURE_TENANT_ID=your_azure_tenant_id
+AZURE_CLIENT_SECRET=your_azure_client_secret
+```
+
+The credentials are kept in the local `.env` file and are excluded from Git.
+
+### Verification
+
+The containerised application was tested by:
+
+1. Building the backend Docker image successfully.
+2. Building the frontend Docker image successfully.
+3. Confirming the frontend production build does not contain `localhost:3000`.
+4. Confirming the frontend production build uses `/api/chat/message`.
+5. Starting both containers using Docker Compose.
+6. Confirming the backend health endpoint.
+7. Confirming the frontend loads through Nginx.
+8. Sending a message through the Tina interface.
+9. Confirming communication with the Azure AI service.
+10. Confirming the Azure AI authentication works from inside the backend container.
+11. Stopping the containers using `docker compose down`.
+12. Starting them again using `docker compose up`.
+13. Confirming the application continued to function after the clean restart.
+
+This demonstrates that the application can be packaged and run in a portable containerised environment.
+
 ## Testing
 
 The backend uses **Vitest** and **Supertest** for automated testing.
@@ -341,6 +559,16 @@ The test suite covers areas including:
 
 The backend separates the Express application from server startup, allowing the application to be imported and tested independently.
 
+The current test suite contains:
+
+- 4 rules engine tests;
+- 3 policy validator tests;
+- 2 policy API tests.
+
+All 9 tests currently pass.
+
+The backend testing approach follows a **Test-Driven Development (TDD)** workflow.
+
 ## API
 
 ### Chat
@@ -355,8 +583,8 @@ Request body:
 
 ```json
 {
-	"message": "I drive a family SUV",
-	"history": []
+  "message": "I drive a family SUV",
+  "history": []
 }
 ```
 
@@ -366,11 +594,11 @@ A successful text response has the following structure:
 
 ```json
 {
-	"success": true,
-	"data": {
-		"type": "text",
-		"reply": "..."
-	}
+  "success": true,
+  "data": {
+    "type": "text",
+    "reply": "..."
+  }
 }
 ```
 
@@ -388,11 +616,11 @@ Example request:
 
 ```json
 {
-	"vehicle": {
-		"type": "sedan",
-		"age": 5
-	},
-	"requestedPolicy": "Comprehensive"
+  "vehicle": {
+    "type": "sedan",
+    "age": 5
+  },
+  "requestedPolicy": "Comprehensive"
 }
 ```
 
@@ -418,9 +646,19 @@ WORKFLOW_NAME=your_workflow_name
 PROJECT_API_KEY=your_project_api_key
 ```
 
+For Docker-based Azure authentication:
+
+```env
+AZURE_CLIENT_ID=your_azure_client_id
+AZURE_TENANT_ID=your_azure_tenant_id
+AZURE_CLIENT_SECRET=your_azure_client_secret
+```
+
 The provider abstraction allows the same Tina service interface to be used regardless of the selected supported AI provider.
 
 The Azure implementation additionally supports claim-policy conversations through an AI agent and RAG.
+
+Additional AI providers may be integrated in the future if development time and project requirements allow.
 
 ## Development Approach
 
@@ -445,10 +683,34 @@ Frontend
 
 The backend testing approach follows a **Test-Driven Development (TDD)** workflow using Vitest and Supertest.
 
+## Security and Configuration
+
+Sensitive configuration is kept outside the source code.
+
+The following files are excluded from Git:
+
+```text
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+```
+
+Docker build contexts also exclude environment files using `.dockerignore`.
+
+API keys, Azure client secrets, and other credentials should never be committed to the repository.
+
+For production deployments, environment variables or a dedicated secrets-management solution should be used instead of committing credentials to configuration files.
+
 ## Future Enhancements
 
 Potential future improvements include:
 
+- Refactoring parts of the application to improve maintainability.
+- Enhancing the user interface and overall user experience.
+- Improving graceful error handling and failure recovery.
+- Performing additional code review and edge-case testing.
 - Adding additional generative AI providers.
 - Expanding the insurance product catalogue.
 - Adding more policy eligibility rules.
