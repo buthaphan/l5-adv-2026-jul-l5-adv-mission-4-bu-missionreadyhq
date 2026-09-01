@@ -102,6 +102,19 @@ export const aiMessage = style([
   },
 ]);
 
+export const errorMessage = style({
+  alignSelf: "center",
+  maxWidth: "75%",
+  padding: "10px 12px",
+  border: "1px solid #f0a3a8",
+  borderRadius: "8px",
+  backgroundColor: "#fff1f2",
+  color: "#8f1824",
+  fontSize: "0.9rem",
+  lineHeight: "1.4",
+  textAlign: "center",
+});
+
 // Container for the bottom input and button
 export const inputGroup = style({
   display: "flex",

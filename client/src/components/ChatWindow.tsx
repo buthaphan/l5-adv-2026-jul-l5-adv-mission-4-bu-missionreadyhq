@@ -14,12 +14,13 @@ const ChatWindow = () => {
   ]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, errorMsg]);
 
   const handleSend = async () => {
     const msg = userInput.trim();
@@ -38,6 +39,7 @@ const ChatWindow = () => {
     setMessages((prev) => [...prev, userMsg]);
     setUserInput("");
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
       // Pass text as the current message, and previousHistory as history
@@ -54,6 +56,10 @@ const ChatWindow = () => {
       setMessages((prev) => [...prev, aiMsg]);
     } catch (error) {
       console.error("Failed to send message:", error);
+
+      setErrorMsg(
+        `Sorry, I'm unable to respond right now. Please try again in a moment.`,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +109,12 @@ const ChatWindow = () => {
               <span>•</span>
               <span>•</span>
             </div>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className={styles.errorMessage} role="alert">
+            {errorMsg}
           </div>
         )}
         {/* Empty div for checking for the bottom content */}
