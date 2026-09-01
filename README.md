@@ -718,6 +718,10 @@ To keep scope manageable while maintaining a high quality bar, recent refactorin
 * **Custom Hook Unit Testing:** Add isolated tests for `useChat` using `@testing-library/react-hooks` to validate error states and retry logic without rendering full DOM trees.
 * **API Resilience Layer:** Move fetch timeouts and `AbortController` instantiation into a general-purpose API client wrapper to keep service methods purely declarative.
 
+## 3. Backend Architecture & Service Layer Refactoring
+- **Completed:** Separated Express HTTP routing concerns from AI business logic in `/api/chat/message`. Extracted tool execution (`evaluate_policy`) and response payload normalization into a dedicated service module (`chatService.js`).
+- **Future Target — General Service Abstraction:** Apply the controller/service separation pattern across all remaining backend routes (e.g., health check endpoints and policy rules utilities) to decouple domain logic from Express-specific request/response objects.
+- **Future Target — Unified Error Handling Middleware:** Replace inline `try/catch` error handling across routes with an Express global error-handling middleware to consistently map domain errors (such as Gemini API quota limits) to HTTP status codes.
 
 The AI provider architecture is designed so that additional providers can be integrated in the future if development time and project requirements allow.
 
