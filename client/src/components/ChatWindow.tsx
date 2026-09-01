@@ -67,7 +67,19 @@ const ChatWindow = () => {
   };
   return (
     <div className={styles.chatContainer}>
-      {/* Message bubbles will live here */}
+      <div className={styles.chatHeader}>
+        <div>
+          <h1 className={styles.headerTitle}>Tina AI</h1>
+          <p className={styles.headerSubtitle}>
+            Insurance Recommendation Assistant
+          </p>
+        </div>
+
+        <div className={styles.status}>
+          <span className={styles.statusDot} aria-hidden="true" />
+          <span>{isLoading ? "Thinking..." : "Online"}</span>
+        </div>
+      </div>
       <div className={styles.chatHistory}>
         {messages.map((msg) => (
           <div
@@ -99,14 +111,23 @@ const ChatWindow = () => {
       <div className={styles.inputGroup}>
         <textarea
           className={styles.textInput}
-          placeholder="Type your message... (Shift+Enter for new line)"
+          placeholder={
+            isLoading
+              ? "Tina is reviewing your details..."
+              : "Type your message... (Shift+Enter for new line)"
+          }
           rows={1}
           value={userInput}
+          disabled={isLoading}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className={styles.submitButton} onClick={handleSend}>
-          Send
+        <button
+          className={styles.submitButton}
+          onClick={handleSend}
+          disabled={isLoading}
+        >
+          {isLoading ? "Waiting..." : "Send"}
         </button>
       </div>
     </div>
