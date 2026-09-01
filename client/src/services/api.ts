@@ -33,6 +33,7 @@ export async function sendMessageToAI(
     const json = await response.json();
     const payload = json.data || {};
 
+    // Normalize raw backend payload into internal AIResponse format
     if (payload.type === "tool_result") {
       return {
         type: "tool_call",
