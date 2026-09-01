@@ -14,23 +14,20 @@ router.post("/message", async (req, res) => {
         .json({ success: false, error: "Message is required" });
     }
 
-    // Get the standardized response from our AI service layer
     const aiResponse = await getTinaResponse(message, history || []);
 
-    // Check if the AI decided to run a tool
     if (
       aiResponse.type === "tool_call" &&
-      aiResponse.toolCall.name === "evaluate_policy"
+      aiResponse.toolCall?.name === "evaluate_policy"
     ) {
       const { vehicleType, age, requestedPolicy } = aiResponse.toolCall.args;
 
-      // Execute deterministic rules engine from Epic 1
       const evaluationResult = evaluatePolicyEligibility(
         { type: vehicleType, age },
         requestedPolicy,
       );
 
-      // Return the evaluation output directly so the frontend can present it
+      // Pre-format human-readable summary so frontend can present rules engine results directly
       return res.status(200).json({
         success: true,
         data: {
@@ -44,23 +41,22 @@ router.post("/message", async (req, res) => {
       });
     }
 
-    // Standard text response
     return res.status(200).json({
       success: true,
       data: {
         type: "text",
-        reply: aiResponse.content, // Much cleaner than textPart.text!
+        reply: aiResponse.content,
       },
     });
   } catch (error) {
     console.error("Chat error:", error);
 
-    // Check if the error is a Gemini 429 rate limit or quota error
     const isQuotaError =
       error?.status === 429 ||
       error?.message?.includes("429") ||
       error?.message?.includes("Quota exceeded");
 
+    // Convert upstream API quota limits into a 200 payload so chat UI presents retry advice gracefully
     if (isQuotaError) {
       return res.status(200).json({
         success: true,
