@@ -703,22 +703,21 @@ API keys, Azure client secrets, and other credentials should never be committed 
 
 For production deployments, environment variables or a dedicated secrets-management solution should be used instead of committing credentials to configuration files.
 
-## Future Enhancements
+# Architectural Refactoring & Future Roadmap
 
-Potential future improvements include:
+To keep scope manageable while maintaining a high quality bar, recent refactoring focused on separating state and business logic from UI components (e.g., extracting `useChat`). Given more time, the following incremental refactors are planned:
 
-- Refactoring parts of the application to improve maintainability.
-- Enhancing the user interface and overall user experience.
-- Improving graceful error handling and failure recovery.
-- Performing additional code review and edge-case testing.
-- Adding additional generative AI providers.
-- Expanding the insurance product catalogue.
-- Adding more policy eligibility rules.
-- Improving recommendation explanations.
-- Adding persistent conversation or session management.
-- Adding automated CI testing through GitHub Actions.
-- Improving deployment and production configuration.
-- Expanding the Azure RAG knowledge base and claim-policy capabilities.
+## 1. Presentational UI Sub-Components
+
+* **Header & Status Indicator (`ChatHeader`):** Extract header rendering and status state logic into a dedicated presentation component.
+* **Message List & Threading (`ChatMessageList`):** Separate individual message bubbles and the typing indicator to reduce rendering responsibilities in `ChatWindow`.
+* **Input Action Bar (`ChatInput`):** Isolate the multi-line textarea and keydown event handlers into a re-usable input component.
+
+## 2. State & API Architecture
+
+* **Custom Hook Unit Testing:** Add isolated tests for `useChat` using `@testing-library/react-hooks` to validate error states and retry logic without rendering full DOM trees.
+* **API Resilience Layer:** Move fetch timeouts and `AbortController` instantiation into a general-purpose API client wrapper to keep service methods purely declarative.
+
 
 The AI provider architecture is designed so that additional providers can be integrated in the future if development time and project requirements allow.
 
