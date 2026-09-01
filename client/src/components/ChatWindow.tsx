@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Message } from "../types/chat";
-import { sendMessageToAI } from "../services/api";
+import { sendMessageToAI, checkServiceHealth } from "../services/api";
 import * as styles from "./chat.css";
 
 const ChatWindow = () => {
@@ -14,16 +14,19 @@ const ChatWindow = () => {
   ]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, errorMsg]);
 
   const handleSend = async () => {
     const msg = userInput.trim();
-    if (!msg || isLoading) return;
+    if (!msg || isLoading || isServiceUnavailable) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -38,6 +41,7 @@ const ChatWindow = () => {
     setMessages((prev) => [...prev, userMsg]);
     setUserInput("");
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
       // Pass text as the current message, and previousHistory as history
@@ -54,8 +58,31 @@ const ChatWindow = () => {
       setMessages((prev) => [...prev, aiMsg]);
     } catch (error) {
       console.error("Failed to send message:", error);
+
+      setIsServiceUnavailable(true);
+
+      setErrorMsg(
+        `Sorry, I'm unable to respond right now. Please try again in a moment.`,
+      );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+
+    try {
+      await checkServiceHealth();
+
+      setIsServiceUnavailable(false);
+      setErrorMsg(null);
+    } catch (error) {
+      console.error("Health check failed:", error);
+
+      setErrorMsg("Tina is still unavailable. Please try again later.");
+    } finally {
+      setIsRetrying(false);
     }
   };
 
@@ -76,8 +103,25 @@ const ChatWindow = () => {
         </div>
 
         <div className={styles.status}>
-          <span className={styles.statusDot} aria-hidden="true" />
-          <span>{isLoading ? "Thinking..." : "Online"}</span>
+          <span
+            className={
+              isRetrying
+                ? styles.checkingStatusDot
+                : isServiceUnavailable
+                  ? styles.unavailableStatusDot
+                  : styles.statusDot
+            }
+            aria-hidden="true"
+          />
+          <span>
+            {isRetrying
+              ? "Checking..."
+              : isServiceUnavailable
+                ? "Unavailable"
+                : isLoading
+                  ? "Reviewing..."
+                  : "Online"}
+          </span>
         </div>
       </div>
       <div className={styles.chatHistory}>
@@ -105,6 +149,22 @@ const ChatWindow = () => {
             </div>
           </div>
         )}
+
+        {errorMsg && (
+          <div className={styles.errorMessage} role="alert">
+            <span>{errorMsg}</span>
+
+            {isServiceUnavailable && (
+              <button
+                className={styles.retryButton}
+                onClick={handleRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? "Checking..." : "Try again"}
+              </button>
+            )}
+          </div>
+        )}
         {/* Empty div for checking for the bottom content */}
         <div ref={conversationEndRef} />
       </div>
@@ -112,22 +172,28 @@ const ChatWindow = () => {
         <textarea
           className={styles.textInput}
           placeholder={
-            isLoading
-              ? "Tina is reviewing your details..."
-              : "Type your message... (Shift+Enter for new line)"
+            isServiceUnavailable
+              ? "Tina is temporarily unavailable"
+              : isLoading
+                ? "Tina is reviewing your details..."
+                : "Type your message... (Shift+Enter for new line)"
           }
           rows={1}
           value={userInput}
-          disabled={isLoading}
+          disabled={isLoading || isServiceUnavailable}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
         <button
           className={styles.submitButton}
           onClick={handleSend}
-          disabled={isLoading}
+          disabled={isLoading || isServiceUnavailable}
         >
-          {isLoading ? "Waiting..." : "Send"}
+          {isServiceUnavailable
+            ? "Unavailable"
+            : isLoading
+              ? "Waiting..."
+              : "Send"}
         </button>
       </div>
     </div>

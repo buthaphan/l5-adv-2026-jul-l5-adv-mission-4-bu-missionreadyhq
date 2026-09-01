@@ -59,6 +59,21 @@ export const statusDot = style({
   borderRadius: "50%",
   backgroundColor: "#22c55e",
 });
+
+export const checkingStatusDot = style([
+  statusDot,
+  {
+    backgroundColor: "#f59e0b",
+  },
+]);
+
+export const unavailableStatusDot = style([
+  statusDot,
+  {
+    backgroundColor: "#dc2626",
+  },
+]);
+
 // Chat history scrollable viewport
 export const chatHistory = style({
   flex: 1,
@@ -102,6 +117,43 @@ export const aiMessage = style([
   },
 ]);
 
+export const errorMessage = style({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "10px",
+  alignSelf: "center",
+  maxWidth: "75%",
+  padding: "10px 12px",
+  border: "1px solid #f0a3a8",
+  borderRadius: "8px",
+  backgroundColor: "#fff1f2",
+  color: "#8f1824",
+  fontSize: "0.9rem",
+  lineHeight: "1.4",
+  textAlign: "center",
+});
+
+export const retryButton = style({
+  padding: "8px 14px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#a61f29",
+  color: "#ffffff",
+  fontFamily: "inherit",
+  fontSize: "0.9rem",
+  fontWeight: 700,
+  cursor: "pointer",
+  selectors: {
+    "&:hover": {
+      backgroundColor: "#8f1824",
+    },
+    "&:disabled": {
+      cursor: "not-allowed",
+      opacity: 0.6,
+    },
+  },
+});
 // Container for the bottom input and button
 export const inputGroup = style({
   display: "flex",
