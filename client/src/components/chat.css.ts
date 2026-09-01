@@ -59,6 +59,14 @@ export const statusDot = style({
   borderRadius: "50%",
   backgroundColor: "#22c55e",
 });
+
+export const unavailableStatusDot = style([
+  statusDot,
+  {
+    backgroundColor: "#dc2626",
+  },
+]);
+
 // Chat history scrollable viewport
 export const chatHistory = style({
   flex: 1,
