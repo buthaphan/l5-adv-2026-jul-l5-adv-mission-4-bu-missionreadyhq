@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { getTinaResponse } from "../services/ai/index.js";
-import { evaluatePolicyEligibility } from "../utils/rulesEngine.js";
+import { processChatMessage } from "../services/chatService.js";
 
 const router = Router();
 
@@ -14,39 +13,11 @@ router.post("/message", async (req, res) => {
         .json({ success: false, error: "Message is required" });
     }
 
-    const aiResponse = await getTinaResponse(message, history || []);
-
-    if (
-      aiResponse.type === "tool_call" &&
-      aiResponse.toolCall?.name === "evaluate_policy"
-    ) {
-      const { vehicleType, age, requestedPolicy } = aiResponse.toolCall.args;
-
-      const evaluationResult = evaluatePolicyEligibility(
-        { type: vehicleType, age },
-        requestedPolicy,
-      );
-
-      // Pre-format human-readable summary so frontend can present rules engine results directly
-      return res.status(200).json({
-        success: true,
-        data: {
-          type: "tool_result",
-          toolName: "evaluate_policy",
-          result: evaluationResult,
-          reply: evaluationResult.eligible
-            ? `Great news! Your ${age}-year-old ${vehicleType} is eligible for ${requestedPolicy}.`
-            : `Unfortunately, your ${age}-year-old ${vehicleType} is not eligible for ${requestedPolicy}. Reason: ${evaluationResult.reason}`,
-        },
-      });
-    }
+    const chatData = await processChatMessage(message, history);
 
     return res.status(200).json({
       success: true,
-      data: {
-        type: "text",
-        reply: aiResponse.content,
-      },
+      data: chatData,
     });
   } catch (error) {
     console.error("Chat error:", error);
