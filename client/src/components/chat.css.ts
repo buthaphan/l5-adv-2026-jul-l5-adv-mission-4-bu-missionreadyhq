@@ -4,7 +4,7 @@ import { style, globalStyle, keyframes } from "@vanilla-extract/css";
 globalStyle("html, body", {
   margin: 0,
   padding: 0,
-  fontFamily: "Inter, system-ui, sans-serif",
+  fontFamily: "Lato, Helvetica, Arial, sans-serif",
   backgroundColor: "#f4f4f9",
   color: "#333",
 });
@@ -24,24 +24,59 @@ export const chatContainer = style({
   border: "1px solid #e1e4e8",
 });
 
+export const chatHeader = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "16px 20px",
+  backgroundColor: "#3568bd",
+  color: "#ffffff",
+});
+
+export const headerTitle = style({
+  margin: 0,
+  fontSize: "1.1rem",
+  fontWeight: 700,
+});
+
+export const headerSubtitle = style({
+  margin: "4px 0 0",
+  fontSize: "0.85rem",
+  opacity: 0.85,
+});
+
+export const status = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  fontSize: "0.8rem",
+  fontWeight: 600,
+});
+
+export const statusDot = style({
+  width: "8px",
+  height: "8px",
+  borderRadius: "50%",
+  backgroundColor: "#22c55e",
+});
 // Chat history scrollable viewport
 export const chatHistory = style({
   flex: 1,
   overflowY: "auto",
-  padding: "20px",
+  padding: "16px",
   display: "flex",
   flexDirection: "column",
-  gap: "12px",
+  gap: "8px",
   backgroundColor: "#fafbfc",
 });
 
 // Base message bubble style
 export const message = style({
-  padding: "12px 16px",
+  padding: "10px 12px",
   borderRadius: "8px",
   maxWidth: "75%",
-  lineHeight: "1.5",
-  fontSize: "0.95rem",
+  lineHeight: "1.4",
+  fontSize: "1rem",
   wordBreak: "break-word",
 });
 
@@ -49,7 +84,7 @@ export const message = style({
 export const userMessage = style([
   message,
   {
-    backgroundColor: "#0066ff",
+    backgroundColor: "#c92632",
     color: "#ffffff",
     alignSelf: "flex-end",
     borderBottomRightRadius: "2px",
@@ -70,7 +105,7 @@ export const aiMessage = style([
 // Container for the bottom input and button
 export const inputGroup = style({
   display: "flex",
-  padding: "16px",
+  padding: "10px",
   gap: "12px",
   backgroundColor: "#ffffff",
   borderTop: "1px solid #e1e4e8",
@@ -79,10 +114,10 @@ export const inputGroup = style({
 // Textarea input field
 export const textInput = style({
   flex: 1,
-  padding: "12px 16px",
+  padding: "10px 12px",
   borderRadius: "8px",
-  border: "1px solid #d1d5db",
-  fontSize: "0.95rem",
+  border: "1px solid #a61f29",
+  fontSize: "1rem",
   fontFamily: "inherit",
   outline: "none",
   resize: "none", // Prevents manual drag-resizing
@@ -94,6 +129,10 @@ export const textInput = style({
     "&:focus": {
       borderColor: "#0066ff",
     },
+    "&:disabled": {
+      cursor: "not-allowed",
+      opacity: 0.6,
+    },
   },
 });
 
@@ -102,7 +141,7 @@ export const submitButton = style({
   padding: "12px 20px",
   borderRadius: "8px",
   border: "none",
-  backgroundColor: "#0066ff",
+  backgroundColor: "#a61f29",
   color: "#ffffff",
   fontSize: "0.95rem",
   fontWeight: 600,
@@ -110,7 +149,11 @@ export const submitButton = style({
   transition: "background-color 0.2s ease",
   selectors: {
     "&:hover": {
-      backgroundColor: "#0052cc",
+      backgroundColor: "#a61f29",
+    },
+    "&:disabled": {
+      cursor: "not-allowed",
+      opacity: 0.6,
     },
   },
 });
