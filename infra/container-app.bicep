@@ -1,23 +1,24 @@
-@description('Name of the container app.')
-param appName string
-
-@description('Location for the container app.')
+@description('Location for all resources.')
 param location string
 
-@description('Target environment ID.')
+@description('Container App name.')
+param appName string
+
+@description('Container Apps Environment ID.')
 param environmentId string
 
-@description('Container image URL from GHCR.')
-param imageName string
+@description('Container image URL.')
+param containerImage string
 
-@description('Port exposed by the container.')
+@description('Target port for ingress.')
 param targetPort int
-
-@description('Is external ingress enabled?')
-param isExternalIngress bool = false
 
 @description('Environment variables for the container.')
 param envVars array = []
+
+@description('Registry password (e.g. GITHUB_TOKEN).')
+@secure()
+param registryPassword string = ''
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: appName
@@ -26,26 +27,39 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: environmentId
     configuration: {
       ingress: {
-        external: isExternalIngress
+        external: true
         targetPort: targetPort
         transport: 'auto'
       }
+      registries: empty(registryPassword) ? [] : [
+        {
+          server: 'ghcr.io'
+          username: 'mission-ready'
+          passwordSecretRef: 'ghcr-password'
+        }
+      ]
+      secrets: empty(registryPassword) ? [] : [
+        {
+          name: 'ghcr-password'
+          value: registryPassword
+        }
+      ]
     }
     template: {
       containers: [
         {
           name: appName
-          image: imageName
-          env: envVars
+          image: containerImage
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
           }
+          env: envVars
         }
       ]
       scale: {
         minReplicas: 0
-        maxReplicas: 2
+        maxReplicas: 3
       }
     }
   }
