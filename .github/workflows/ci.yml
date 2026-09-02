@@ -64,14 +64,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set lowercase repository owner
+        run: echo "REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: ${{ github.ref == 'refs/heads/main' || github.event_name == 'pull_request' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/tina-backend:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/tina-backend:latest
+            ghcr.io/${{ env.REPO_OWNER }}/tina-backend:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER }}/tina-backend:latest
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -79,5 +82,5 @@ jobs:
           context: ./client
           push: ${{ github.ref == 'refs/heads/main' || github.event_name == 'pull_request' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/tina-frontend:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/tina-frontend:latest
+            ghcr.io/${{ env.REPO_OWNER }}/tina-frontend:${{ github.sha }}
+            ghcr.io/${{ env.REPO_OWNER }}/tina-frontend:latest
