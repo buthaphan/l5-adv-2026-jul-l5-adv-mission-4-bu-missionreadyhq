@@ -30,7 +30,7 @@ jobs:
           scope: resourcegroup
           resourceGroupName: rg-tina-assistant
           template: ./infra/main.bicep
-          parameters: >
+          parameters: >-
             imageTag=${{ github.sha }}
             repoOwner=mission-ready
-            registryPassword=${{ secrets.GITHUB_TOKEN }}
+            registryPassword=${{ secrets.GHCR_PAT }}
