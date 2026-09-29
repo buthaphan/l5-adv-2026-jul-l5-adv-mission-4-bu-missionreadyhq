@@ -2,47 +2,47 @@
 
 An AI-powered conversational application that helps users identify suitable vehicle insurance products based on their individual circumstances.
 
-The application uses **Tina**, an AI insurance consultant, to have a dynamic conversation with the user, gather relevant information about their vehicle and coverage needs, and recommend one or more suitable insurance products.
+The application uses **Tina**, an AI insurance consultant, to gather information about a user's vehicle and coverage needs, ask dynamic questions, and provide insurance recommendations.
 
-The application combines **generative AI** for conversational reasoning with a **deterministic backend rules engine** for policy eligibility checks.
+The architecture combines **generative AI** for conversational reasoning with a **deterministic backend rules engine** for policy eligibility. The application supports **Google Gemini** and **Azure AI**. The Azure implementation also uses a **Microsoft Foundry AI agent with Retrieval-Augmented Generation (RAG)** for claim-policy information.
 
-The application currently supports **Google Gemini** and **Azure AI**. The Azure implementation also uses an **AI agent in Microsoft Foundry with Retrieval-Augmented Generation (RAG)** to support claim-policy information.
-
-## Features
+## Key Features
 
 - Conversational insurance consultation with Tina
-- User opt-in before personal questions are asked
-- Dynamic questions based on information already provided by the user
+- Dynamic questions based on information already provided
 - Conversation history maintained throughout the session
 - AI-powered insurance recommendations
 - Deterministic policy eligibility validation
-- Support for Google Gemini and Azure AI
+- Multiple AI providers through a common provider abstraction
 - AI function/tool calling for policy evaluation
-- Azure AI Agent integration
-- Retrieval-Augmented Generation (RAG) for claim-policy information
+- Microsoft Foundry AI agent integration
+- RAG support for claim-policy information
 - Markdown-formatted AI responses
-- Loading and typing indicators
-- Automated backend testing using Vitest and Supertest
-- AI provider abstraction designed to support additional providers in the future
+- Loading, typing, error, and service-availability states
+- Automated backend testing with Vitest and Supertest
 - Docker containerisation for frontend and backend
-- Docker Compose support for running the complete application
+- Docker Compose support
+- Nginx reverse proxy for frontend/API routing
+- GitHub Actions CI/CD
+- GitHub Container Registry (GHCR)
+- Azure Container Apps deployment using Bicep and OIDC
 
 ## How It Works
 
 The application follows a conversational workflow:
 
-1. Tina displays an introduction and asks the user for permission to ask personal questions.
-2. The user opts in to continue.
-3. Tina asks questions dynamically based on information that is still missing.
-4. Previous conversation history is provided to the AI so that previously supplied information is not requested again.
-5. Once enough information has been gathered, Tina can invoke the `evaluate_policy` tool.
-6. The backend evaluates the vehicle and requested policy against deterministic business rules.
+1. Tina introduces the consultation and asks the user for permission to ask personal questions.
+2. Tina gathers the information required to understand the user's vehicle and coverage needs.
+3. Conversation history is provided to the AI so previously supplied information can be retained.
+4. When enough information has been gathered, Tina can request the `evaluate_policy` tool.
+5. The backend passes the request to the deterministic rules engine.
+6. The rules engine evaluates the vehicle and requested insurance product against defined eligibility rules.
 7. The eligibility result is returned to the application.
-8. Tina provides a recommendation with reasons based on the gathered information and policy eligibility.
+8. Tina provides a recommendation based on the gathered information and policy eligibility.
 
-For claim-policy questions, the Azure AI implementation can use an AI agent and RAG to retrieve relevant information before generating a response.
+For claim-policy questions, the Azure implementation can use a Microsoft Foundry AI agent and RAG to retrieve relevant information before generating the response.
 
-## AI Architecture
+## Architecture
 
 The application separates conversational AI responsibilities from deterministic business logic.
 
@@ -54,90 +54,82 @@ The application separates conversational AI responsibilities from deterministic 
                      Express Chat API
                             │
                             ▼
-                    Tina AI Service
+                     Chat Service
                             │
-                     AI_PROVIDER
-                      /           \
-                     ▼             ▼
-                  Gemini       Azure AI
-                                Foundry
-                                  │
-                           AI Agent + RAG
-                                  │
-                        Claim Policy Knowledge
-                                  │
-                     ┌────────────┴────────────┐
-                     │                         │
-                     ▼                         ▼
-              AI Response              evaluate_policy
-                                               │
-                                               ▼
-                                        Rules Engine
-                                               │
-                                               ▼
-                                      Eligibility Result
-                                               │
-                                               ▼
-                                        Recommendation
+                            ▼
+                    AI Provider Layer
+                     /             \
+                    ▼               ▼
+                 Gemini          Azure AI
+                                  Foundry
+                                    │
+                             AI Agent + RAG
+                                    │
+                         Claim Policy Knowledge
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │                               │
+                    ▼                               ▼
+             AI Response                    evaluate_policy
+                                                    │
+                                                    ▼
+                                             Rules Engine
+                                                    │
+                                                    ▼
+                                           Eligibility Result
 ```
 
-### Generative AI
+### AI Provider Abstraction
 
-The AI provider is responsible for:
+The AI layer exposes a common response structure for the supported providers:
 
-- conducting the conversation;
-- determining which information is still required;
-- asking questions dynamically;
-- interpreting the user's responses;
-- deciding when policy evaluation is required;
-- providing the final recommendation and supporting reasons.
+```text
+AI Provider
+    │
+    ├── Gemini
+    │
+    └── Azure AI Workflow
+            │
+            └── Microsoft Foundry Agent
+```
 
-### Backend Rules Engine
+The selected provider is controlled through the `AI_PROVIDER` environment variable. The common provider interface allows the chat service to remain independent of the underlying AI platform.
 
-The backend rules engine is responsible for deterministic policy eligibility.
+AI responses are normalised into either:
 
-This separation prevents generative AI from being solely responsible for enforcing fixed business rules.
+- a standard text response; or
+- a tool-call request containing the tool name and arguments.
 
-### Azure AI Agent and RAG
+### Deterministic Policy Evaluation
 
-The Azure implementation uses an **AI agent in Microsoft Foundry** to support insurance-related conversations and claim-policy questions.
+Generative AI is responsible for conversational reasoning and deciding when policy evaluation is required. It does not independently enforce the fixed eligibility rules.
 
-For claim-policy questions, the Azure AI agent uses a **Retrieval-Augmented Generation (RAG)** approach. Relevant information is retrieved from the configured knowledge source before the AI generates a response.
+The `evaluate_policy` tool passes the relevant vehicle and policy information to the backend rules engine.
 
-This allows the Azure implementation to provide responses grounded in the available claim-policy information rather than relying solely on the language model's general knowledge.
+The rules engine then returns a deterministic eligibility result.
 
-The RAG capability is specific to the Azure AI implementation and is not required for the standard Gemini recommendation workflow.
-
-## Supported Insurance Products
-
-### Mechanical Breakdown Insurance (MBI)
-
-Provides cover for mechanical or electrical failure of the vehicle, such as engine or transmission issues.
-
-MBI does not cover accidental damage or damage to third parties.
-
-### Comprehensive Car Insurance
-
-Provides cover for accidental damage to the user's own vehicle as well as damage caused to other people's vehicles or property.
-
-### Third Party Car Insurance
-
-Provides cover for damage the user causes to other people's vehicles or property.
-
-It does not cover damage to the user's own vehicle.
+This separation keeps fixed business rules in application code rather than relying solely on a generative model.
 
 ## Business Rules
 
-The application currently enforces the following eligibility rules:
+The current backend rules engine enforces these eligibility rules:
 
-| Insurance Product | Rule |
-| ------------------------------------ | --------------------------------------------------------------- |
-| Mechanical Breakdown Insurance (MBI) | Not available for trucks |
-| Mechanical Breakdown Insurance (MBI) | Not available for racing cars |
-| Comprehensive Car Insurance | Only available for vehicles less than 10 years old |
-| Third Party Car Insurance | No exclusion rule currently defined in the backend rules engine |
+| Insurance Product                    | Rule                                               |
+| ------------------------------------ | -------------------------------------------------- |
+| Mechanical Breakdown Insurance (MBI) | Not available for trucks                           |
+| Mechanical Breakdown Insurance (MBI) | Not available for racing cars                      |
+| Comprehensive Car Insurance          | Only available for vehicles less than 10 years old |
+| Third Party Car Insurance            | No exclusion rule currently defined                |
 
-The eligibility rules are implemented in the backend rather than relying on the AI model to determine eligibility.
+The rules are represented as explicit exclusion rules and evaluated by the backend.
+
+## Azure AI and RAG
+
+The Azure implementation uses Microsoft Foundry through the Azure AI provider.
+
+For relevant claim-policy conversations, the application can use an AI agent and Retrieval-Augmented Generation (RAG) to retrieve information from the configured insurance knowledge source before generating a customer-facing response.
+
+The Azure workflow also includes a compliance-review path for selected insurance-related questions, where a draft response can be reviewed by the configured compliance reviewer agent before being returned to the user.
 
 ## Technology Stack
 
@@ -161,7 +153,7 @@ The eligibility rules are implemented in the backend rather than relying on the 
 - Azure AI Projects
 - Azure Identity
 
-### AI and Knowledge Retrieval
+### AI
 
 - Google Gemini
 - Microsoft Azure AI
@@ -169,6 +161,7 @@ The eligibility rules are implemented in the backend rather than relying on the 
 - Azure AI Agent
 - Retrieval-Augmented Generation (RAG)
 - AI function/tool calling
+- Multiple AI provider abstraction
 
 ### Testing
 
@@ -176,13 +169,17 @@ The eligibility rules are implemented in the backend rather than relying on the 
 - Supertest
 - Test-Driven Development (TDD) approach
 
-### Containerisation
+### Containerisation & Deployment
 
 - Docker
-- Docker Desktop
 - Docker Compose
-- Node.js Alpine images
-- Nginx Alpine image
+- Node.js Alpine
+- Nginx Alpine
+- GitHub Actions
+- GitHub Container Registry
+- Azure Container Apps
+- Azure Bicep
+- OpenID Connect (OIDC)
 
 ## Project Structure
 
@@ -210,18 +207,16 @@ The eligibility rules are implemented in the backend rather than relying on the 
 │   ├── validators/
 │   │   └── policyValidator.js
 │   ├── .env.example
-│   ├── .dockerignore
 │   ├── Dockerfile
-│   ├── index.js
-│   ├── server.js
-│   └── package.json
+│   └── server.js
 │
 ├── client/
 │   ├── public/
 │   ├── src/
-│   │   ├── assets/
 │   │   ├── components/
 │   │   │   └── ChatWindow.tsx
+│   │   ├── hooks/
+│   │   │   └── useChat.ts
 │   │   ├── services/
 │   │   │   └── api.ts
 │   │   ├── types/
@@ -229,70 +224,135 @@ The eligibility rules are implemented in the backend rather than relying on the 
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── .env.example
-│   ├── .dockerignore
 │   ├── Dockerfile
-│   ├── index.html
 │   ├── nginx.conf
-│   ├── package.json
 │   └── vite.config.ts
 │
-├── .gitignore
+├── infra/
+│   ├── container-app.bicep
+│   ├── environment.bicep
+│   └── main.bicep
+│
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       └── deploy.yml
+│
 ├── docker-compose.yml
-├── README.md
 └── package.json
 ```
 
-## Prerequisites
+## Testing
 
-Before running the application, make sure the following are installed:
+The backend uses **Vitest** and **Supertest** for automated testing.
 
-- Node.js
-- npm
-- Git
-- Docker Desktop
-- Docker Compose
+The current test suite covers:
 
-You will also need credentials for at least one supported AI provider.
+- deterministic rules-engine behaviour
+- policy request validation
+- policy API behaviour
 
-## Environment Variables
+The documented test suite contains:
 
-Environment-specific configuration is stored outside the source code.
+- 4 rules engine tests
+- 3 policy validator tests
+- 2 policy API tests
+
+The backend separates the Express application from server startup, allowing the application to be imported and tested independently.
+
+## Docker
+
+The application is containerised as separate frontend and backend services.
 
 ### Backend
 
-Create a `.env` file in the `backend` directory based on `backend/.env.example`.
+The backend uses a Node.js Alpine image and runs the Express application on port `3000`.
 
-#### Google Gemini
+### Frontend
+
+The frontend uses a multi-stage Docker build:
+
+1. Vite builds the React application.
+2. Nginx serves the production build.
+3. Nginx routes `/api` requests to the backend.
+
+### Docker Compose
+
+Docker Compose connects the frontend and backend services on a shared network.
+
+```text
+Browser
+   │
+   ▼
+Frontend Container
+     Nginx :80
+   │
+   │ /api
+   ▼
+Backend Container
+   Node.js :3000
+   │
+   ▼
+AI Provider
+```
+
+## CI/CD and Azure Deployment
+
+The repository includes GitHub Actions workflows for:
+
+- backend testing
+- frontend builds
+- Docker image builds
+- publishing images to GHCR
+- Azure infrastructure deployment
+
+The infrastructure is defined using **Azure Bicep** and the deployment workflow uses **OpenID Connect (OIDC)** for Azure authentication.
+
+The CI workflow builds the backend and frontend images after the application checks have completed, then publishes the resulting container images to GitHub Container Registry.
+
+## Configuration
+
+Environment-specific configuration is kept outside the source code.
+
+### Backend
+
+Create `backend/.env` from `backend/.env.example`.
+
+Supported configuration includes:
+
+```env
+# Server
+PORT=3000
+
+# AI Provider
+AI_PROVIDER=gemini
+
+# Google Gemini
+GEMINI_API_KEY=your_gemini_api_key
+
+# Azure AI / Microsoft Foundry
+PROJECT_ENDPOINT=your_project_endpoint
+WORKFLOW_NAME=your_workflow_name
+PROJECT_API_KEY=your_project_api_key
+
+# Azure Authentication for Docker
+AZURE_CLIENT_ID=your_azure_client_id
+AZURE_TENANT_ID=your_azure_tenant_id
+AZURE_CLIENT_SECRET=your_azure_client_secret
+```
+
+For local Gemini development, set:
 
 ```env
 AI_PROVIDER=gemini
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-#### Azure AI Workflow
-
-```env
-AI_PROVIDER=azure_workflow
-PROJECT_ENDPOINT=your_project_endpoint
-WORKFLOW_NAME=your_workflow_name
-PROJECT_API_KEY=your_project_api_key
-```
-
-For Docker-based execution, Azure authentication uses Microsoft Entra ID through a service principal:
-
-```env
-AZURE_CLIENT_ID=your_azure_client_id
-AZURE_TENANT_ID=your_azure_tenant_id
-AZURE_CLIENT_SECRET=your_azure_client_secret
-```
-
-These credentials are used by `DefaultAzureCredential` inside the backend container.
-
-Do not commit the client secret or any other credentials to the repository.
+For the Azure workflow, configure the required Microsoft Foundry project and Azure authentication values.
 
 ### Frontend
 
-Create a `.env` file in the `client` directory based on `client/.env.example`.
+Create `client/.env` from `client/.env.example`.
 
 For local development:
 
@@ -300,45 +360,29 @@ For local development:
 VITE_API_ENDPOINT=http://localhost:3000/api/chat/message
 ```
 
-For the Docker production build, the frontend uses:
+Environment files and credentials should not be committed to the repository.
 
-```text
-/api/chat/message
-```
+## Running Locally
 
-This allows Nginx to route API requests to the backend container through the Docker Compose network.
+### Install dependencies
 
-Do not commit `.env` files or API credentials to the repository.
-
-## Installation
-
-Clone the repository and install dependencies for both applications.
-
-### Backend
-
-From the repository root:
+Backend:
 
 ```bash
 cd backend
 npm install
 ```
 
-### Frontend
-
-Open another terminal from the repository root:
+Frontend:
 
 ```bash
 cd client
 npm install
 ```
 
-## Running the Application
+### Start the backend
 
-For local development, the backend and frontend can be run as separate development processes. The application can also be run as a containerised deployment using Docker Compose.
-
-### Start the Backend
-
-From the `backend` directory:
+From `backend/`:
 
 ```bash
 npm start
@@ -346,34 +390,23 @@ npm start
 
 The backend runs on port `3000` by default.
 
-A health-check endpoint is available at:
+Health check:
 
 ```text
 GET http://localhost:3000/health
 ```
 
-### Start the Frontend
+### Start the frontend
 
-From the `client` directory:
+From `client/`:
 
 ```bash
 npm run dev
 ```
 
-Vite will display the local development URL in the terminal.
+Vite will display the local development URL.
 
-The frontend communicates with the backend using the endpoint configured by `VITE_API_ENDPOINT`.
-
-## Running with Docker
-
-The application can be run as two Docker containers:
-
-- Frontend container using Nginx
-- Backend container using Node.js
-
-Docker Compose creates a network between the two containers.
-
-### Build and Start
+### Run with Docker Compose
 
 From the repository root:
 
@@ -381,350 +414,22 @@ From the repository root:
 docker compose up --build
 ```
 
-The frontend is available at:
+The frontend is available on port `8080` and the backend on port `3000`.
 
-```text
-http://localhost:8080
-```
-
-The backend is available at:
-
-```text
-http://localhost:3000
-```
-
-The backend health check can be tested at:
-
-```text
-http://localhost:3000/health
-```
-
-### Stop the Containers
+Stop the containers with:
 
 ```bash
 docker compose down
 ```
 
-### Restart the Application
+## Project Status
 
-The containers can be recreated from the Compose configuration using:
+This project demonstrates a full-stack AI application combining conversational AI, deterministic business rules, automated testing, containerisation, CI/CD, and Azure cloud infrastructure.
 
-```bash
-docker compose up
-```
+The project is currently structured as a prototype and development project rather than a production insurance service.
 
-The backend receives its environment configuration from:
+## Author
 
-```text
-backend/.env
-```
+**Banphot Uthaphan**
 
-The frontend Docker build uses:
-
-```text
-/api/chat/message
-```
-
-as the production API endpoint so that requests are routed through Nginx to the backend container.
-
-## Docker Architecture
-
-```text
-                         Browser
-                            │
-                            │ http://localhost:8080
-                            ▼
-                  ┌───────────────────┐
-                  │ Frontend Container│
-                  │       Nginx       │
-                  │       :80         │
-                  └─────────┬─────────┘
-                            │
-                      /api requests
-                            │
-                            ▼
-                  ┌───────────────────┐
-                  │ Backend Container │
-                  │    Node.js        │
-                  │      :3000        │
-                  └─────────┬─────────┘
-                            │
-                            ▼
-                  ┌───────────────────┐
-                  │ Microsoft Foundry │
-                  │ Tina AI Agent     │
-                  │       + RAG       │
-                  └───────────────────┘
-```
-
-The frontend and backend containers communicate through the Docker Compose network.
-
-Nginx serves the React production build and routes API requests to the backend service.
-
-## Task 4 — Containerise the Application
-
-The application was containerised using separate frontend and backend Docker containers.
-
-### Backend Container
-
-The backend is packaged using Node.js 22 Alpine.
-
-The container:
-
-- installs production dependencies;
-- exposes port `3000`;
-- starts the Express application using `npm start`;
-- receives required environment variables from `backend/.env`.
-
-### Frontend Container
-
-The frontend uses a multi-stage Docker build.
-
-The build stage:
-
-- installs frontend dependencies;
-- builds the React application using Vite.
-
-The production stage uses Nginx to serve the generated static files.
-
-The production frontend is configured to use:
-
-```text
-/api/chat/message
-```
-
-instead of `http://localhost:3000/api/chat/message`.
-
-This allows API requests to be routed through the Nginx container to the backend container.
-
-### Docker Compose
-
-Docker Compose is used to run and connect the frontend and backend containers.
-
-The two services communicate through the Docker Compose network.
-
-The frontend does not need to know the backend container's internal IP address. Nginx routes `/api` requests to the backend service.
-
-### Azure Authentication in Docker
-
-The Azure implementation uses `DefaultAzureCredential`.
-
-During local development, `DefaultAzureCredential` can use the developer's Azure CLI authentication.
-
-Inside the Docker container, Azure CLI is not available, so the backend uses service-principal credentials supplied through environment variables:
-
-```env
-AZURE_CLIENT_ID=your_azure_client_id
-AZURE_TENANT_ID=your_azure_tenant_id
-AZURE_CLIENT_SECRET=your_azure_client_secret
-```
-
-The credentials are kept in the local `.env` file and are excluded from Git.
-
-### Verification
-
-The containerised application was tested by:
-
-1. Building the backend Docker image successfully.
-2. Building the frontend Docker image successfully.
-3. Confirming the frontend production build does not contain `localhost:3000`.
-4. Confirming the frontend production build uses `/api/chat/message`.
-5. Starting both containers using Docker Compose.
-6. Confirming the backend health endpoint.
-7. Confirming the frontend loads through Nginx.
-8. Sending a message through the Tina interface.
-9. Confirming communication with the Azure AI service.
-10. Confirming the Azure AI authentication works from inside the backend container.
-11. Stopping the containers using `docker compose down`.
-12. Starting them again using `docker compose up`.
-13. Confirming the application continued to function after the clean restart.
-
-This demonstrates that the application can be packaged and run in a portable containerised environment.
-
-## Testing
-
-The backend uses **Vitest** and **Supertest** for automated testing.
-
-From the `backend` directory:
-
-```bash
-npm test
-```
-
-The test suite covers areas including:
-
-- policy API behaviour;
-- policy request validation;
-- deterministic business-rule evaluation.
-
-The backend separates the Express application from server startup, allowing the application to be imported and tested independently.
-
-The current test suite contains:
-
-- 4 rules engine tests;
-- 3 policy validator tests;
-- 2 policy API tests.
-
-All 9 tests currently pass.
-
-The backend testing approach follows a **Test-Driven Development (TDD)** workflow.
-
-## API
-
-### Chat
-
-Send a message to Tina:
-
-```text
-POST /api/chat/message
-```
-
-Request body:
-
-```json
-{
-  "message": "I drive a family SUV",
-  "history": []
-}
-```
-
-The `history` property contains previous conversation messages.
-
-A successful text response has the following structure:
-
-```json
-{
-  "success": true,
-  "data": {
-    "type": "text",
-    "reply": "..."
-  }
-}
-```
-
-When Tina requests policy evaluation, the backend processes the `evaluate_policy` tool and returns the eligibility result.
-
-### Policy Evaluation
-
-The backend also exposes a deterministic policy evaluation endpoint:
-
-```text
-POST /api/policies/evaluate-policy
-```
-
-Example request:
-
-```json
-{
-  "vehicle": {
-    "type": "sedan",
-    "age": 5
-  },
-  "requestedPolicy": "Comprehensive"
-}
-```
-
-The request is validated using Zod before being passed to the rules engine.
-
-## AI Provider Configuration
-
-The application supports multiple AI providers through the `AI_PROVIDER` environment variable.
-
-### Google Gemini
-
-```env
-AI_PROVIDER=gemini
-GEMINI_API_KEY=your_api_key
-```
-
-### Azure AI Workflow
-
-```env
-AI_PROVIDER=azure_workflow
-PROJECT_ENDPOINT=your_project_endpoint
-WORKFLOW_NAME=your_workflow_name
-PROJECT_API_KEY=your_project_api_key
-```
-
-For Docker-based Azure authentication:
-
-```env
-AZURE_CLIENT_ID=your_azure_client_id
-AZURE_TENANT_ID=your_azure_tenant_id
-AZURE_CLIENT_SECRET=your_azure_client_secret
-```
-
-The provider abstraction allows the same Tina service interface to be used regardless of the selected supported AI provider.
-
-The Azure implementation additionally supports claim-policy conversations through an AI agent and RAG.
-
-Additional AI providers may be integrated in the future if development time and project requirements allow.
-
-## Development Approach
-
-The backend separates responsibilities between AI services, tools, business rules, and API routes:
-
-```text
-AI
-→ Conversational reasoning and information gathering
-
-Tool
-→ Requests deterministic policy evaluation
-
-Rules Engine
-→ Enforces policy eligibility rules
-
-API
-→ Coordinates requests and responses
-
-Frontend
-→ Presents the conversation to the user
-```
-
-The backend testing approach follows a **Test-Driven Development (TDD)** workflow using Vitest and Supertest.
-
-## Security and Configuration
-
-Sensitive configuration is kept outside the source code.
-
-The following files are excluded from Git:
-
-```text
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-```
-
-Docker build contexts also exclude environment files using `.dockerignore`.
-
-API keys, Azure client secrets, and other credentials should never be committed to the repository.
-
-For production deployments, environment variables or a dedicated secrets-management solution should be used instead of committing credentials to configuration files.
-
-# Architectural Refactoring & Future Roadmap
-
-To keep scope manageable while maintaining a high quality bar, recent refactoring focused on separating state and business logic from UI components (e.g., extracting `useChat`). Given more time, the following incremental refactors are planned:
-
-## 1. Presentational UI Sub-Components
-
-* **Header & Status Indicator (`ChatHeader`):** Extract header rendering and status state logic into a dedicated presentation component.
-* **Message List & Threading (`ChatMessageList`):** Separate individual message bubbles and the typing indicator to reduce rendering responsibilities in `ChatWindow`.
-* **Input Action Bar (`ChatInput`):** Isolate the multi-line textarea and keydown event handlers into a re-usable input component.
-
-## 2. State & API Architecture
-
-* **Custom Hook Unit Testing:** Add isolated tests for `useChat` using `@testing-library/react-hooks` to validate error states and retry logic without rendering full DOM trees.
-* **API Resilience Layer:** Move fetch timeouts and `AbortController` instantiation into a general-purpose API client wrapper to keep service methods purely declarative.
-
-## 3. Backend Architecture & Service Layer Refactoring
-- **Completed:** Separated Express HTTP routing concerns from AI business logic in `/api/chat/message`. Extracted tool execution (`evaluate_policy`) and response payload normalization into a dedicated service module (`chatService.js`).
-- **Future Target — General Service Abstraction:** Apply the controller/service separation pattern across all remaining backend routes (e.g., health check endpoints and policy rules utilities) to decouple domain logic from Express-specific request/response objects.
-- **Future Target — Unified Error Handling Middleware:** Replace inline `try/catch` error handling across routes with an Express global error-handling middleware to consistently map domain errors (such as Gemini API quota limits) to HTTP status codes.
-
-The AI provider architecture is designed so that additional providers can be integrated in the future if development time and project requirements allow.
-
-## Project Context
-
-This project was developed as part of the **Mission Ready Level 5 Advanced** programme.
+AI-Powered Full Stack Developer
